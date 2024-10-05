@@ -702,6 +702,31 @@ namespace Garnet.common
             return true;
         }
 
+        /// <summary>
+        /// Try to read a RESP formatted bulk string
+        /// NOTE: This is used with client implementation to parse responses that may include a null value (i.e. $-1\r\n)
+        /// </summary>
+        /// <param name="result"></param>
+        /// <param name="ptr"></param>
+        /// <param name="end"></param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool ReadStringResponseWithLengthHeaderAsSpan(out ReadOnlySpan<byte> result, ref byte* ptr, byte* end)
+        {
+            result = null;
+
+            byte* keyPtr = null;
+            var length = 0;
+            if (!ReadPtrWithSignedLengthHeader(ref keyPtr, ref length, ref ptr, end))
+                return false;
+
+            if (length < 0)
+                return true;
+
+            result = new ReadOnlySpan<byte>(keyPtr, length);
+            return true;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static bool ReadPtrWithSignedLengthHeader(ref byte* keyPtr, ref int length, ref byte* ptr, byte* end)
         {

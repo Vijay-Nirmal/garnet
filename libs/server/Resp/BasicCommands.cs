@@ -717,6 +717,74 @@ namespace Garnet.server
         }
 
         /// <summary>
+        /// LCS
+        /// </summary>
+        bool NetworkLCS<TGarnetApi>(ref TGarnetApi storageApi)
+            where TGarnetApi : IGarnetApi
+        {
+            var key1 = parseState.GetArgSliceByRef(0);
+            var key2 = parseState.GetArgSliceByRef(1);
+
+            var currentArg = 2;
+            var onlyLength = false;
+            var isIndex = false;
+            var minMatchLen = 0;
+            var withMatchLen = false;
+            while (currentArg < parseState.Count)
+            {
+                if (parseState.GetArgSliceByRef(currentArg).ReadOnlySpan.EqualsUpperCaseSpanIgnoringCase(CmdStrings.LEN))
+                {
+                    onlyLength = true;
+                }
+                else if (parseState.GetArgSliceByRef(currentArg).ReadOnlySpan.EqualsUpperCaseSpanIgnoringCase(CmdStrings.IDX))
+                {
+                    isIndex = true;
+                }
+                else if (parseState.GetArgSliceByRef(currentArg).ReadOnlySpan.EqualsUpperCaseSpanIgnoringCase(CmdStrings.MINMATCHLEN))
+                {
+                    if (!parseState.TryGetInt(++currentArg, out minMatchLen))
+                    {
+                        while (!RespWriteUtils.WriteError(CmdStrings.RESP_ERR_GENERIC_VALUE_IS_NOT_INTEGER, ref dcurr, dend))
+                            SendAndReset();
+                        return true;
+                    }
+                }
+                else if (parseState.GetArgSliceByRef(currentArg).ReadOnlySpan.EqualsUpperCaseSpanIgnoringCase(CmdStrings.WITHMATCHLEN))
+                {
+                    withMatchLen = true;
+                }
+                else
+                {
+                    while (!RespWriteUtils.WriteError(CmdStrings.RESP_ERR_GENERIC_SYNTAX_ERROR, ref dcurr, dend))
+                        SendAndReset();
+                    return true;
+                }
+
+                currentArg++;
+            }
+
+            var o = new SpanByteAndMemory(dcurr, (int)(dend - dcurr));
+            var status = storageApi.LCS(key1, key2, onlyLength, isIndex, minMatchLen, withMatchLen, ref o);
+
+            switch (status)
+            {
+                case GarnetStatus.OK:
+                    if (!o.IsSpanByte)
+                        SendAndReset(o.Memory, o.Length);
+                    else
+                        dcurr += o.Length;
+                    break;
+                case GarnetStatus.NOTFOUND:
+                    Debug.Assert(o.IsSpanByte);
+                    while (!RespWriteUtils.WriteDirect(CmdStrings.RESP_ERRNOTFOUND, ref dcurr, dend))
+                        SendAndReset();
+                    break;
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Increment (INCRBY, DECRBY, INCR, DECR)
         /// </summary>
         private bool NetworkIncrement<TGarnetApi>(RespCommand cmd, ref TGarnetApi storageApi)

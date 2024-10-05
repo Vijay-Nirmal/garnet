@@ -99,6 +99,10 @@ namespace Garnet.server
         public static ReadOnlySpan<byte> rank => "rank"u8;
         public static ReadOnlySpan<byte> MAXLEN => "MAXLEN"u8;
         public static ReadOnlySpan<byte> maxlen => "maxlen"u8;
+        public static ReadOnlySpan<byte> LEN => "LEN"u8;
+        public static ReadOnlySpan<byte> IDX => "IDX"u8;
+        public static ReadOnlySpan<byte> MINMATCHLEN => "MINMATCHLEN"u8;
+        public static ReadOnlySpan<byte> WITHMATCHLEN => "WITHMATCHLEN"u8;
 
         /// <summary>
         /// Response strings

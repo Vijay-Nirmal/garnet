@@ -212,6 +212,23 @@ namespace Garnet.server
         GarnetStatus PERSIST(ArgSlice key, StoreType storeType = StoreType.All);
         #endregion
 
+        #region LCS
+
+        /// <summary>
+        /// Calculates the Longest Common Subsequence (LCS) between two strings.
+        /// </summary>
+        /// <param name="key1">The first string.</param>
+        /// <param name="key2">The second string.</param>
+        /// <param name="onlyLength">Indicates whether to only calculate the length of the LCS.</param>
+        /// <param name="isIndex">Indicates whether the output strings should contains the indices of the matched elements.</param>
+        /// <param name="minMatchLen">The minimum length of a match to consider.</param>
+        /// <param name="withMatchLen">Indicates whether to include the length of each match in the output.</param>
+        /// <param name="output">The output span containing the LCS.</param>
+        /// <returns>The status of the LCS calculation.</returns>
+        GarnetStatus LCS(ArgSlice key1, ArgSlice key2, bool onlyLength, bool isIndex, int minMatchLen, bool withMatchLen, ref SpanByteAndMemory output);
+
+        #endregion
+
         #region Increment (INCR, INCRBY, DECR, DECRBY)
         /// <summary>
         /// Increment (INCR, INCRBY, DECR, DECRBY)

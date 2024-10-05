@@ -45,6 +45,7 @@ namespace Garnet.server
         HVALS,
         KEYS,
         LINDEX,
+        LCS,
         LLEN,
         LPOS,
         LRANGE,
@@ -642,6 +643,7 @@ namespace Garnet.server
                         {
                             // Commands with dynamic number of arguments
                             >= ((3 << 4) | 3) and <= ((3 << 4) | 6) when lastWord == MemoryMarshal.Read<ulong>("3\r\nSET\r\n"u8) => RespCommand.SETEXNX,
+                            >= ((3 << 4) | 2) and <= ((3 << 4) | 7) when lastWord == MemoryMarshal.Read<ulong>("3\r\nLCS\r\n"u8) => RespCommand.LCS,
                             >= ((6 << 4) | 0) and <= ((6 << 4) | 9) when lastWord == MemoryMarshal.Read<ulong>("RUNTXP\r\n"u8) => RespCommand.RUNTXP,
                             >= ((6 << 4) | 2) and <= ((6 << 4) | 3) when lastWord == MemoryMarshal.Read<ulong>("EXPIRE\r\n"u8) => RespCommand.EXPIRE,
                             >= ((6 << 4) | 2) and <= ((6 << 4) | 5) when lastWord == MemoryMarshal.Read<ulong>("BITPOS\r\n"u8) => RespCommand.BITPOS,

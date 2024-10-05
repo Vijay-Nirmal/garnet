@@ -3706,5 +3706,29 @@ namespace Garnet.test
             static void AssertField(string line, string[] fields, string name)
             => ClassicAssert.AreEqual(1, fields.Count(f => f.StartsWith($"{name}=")), $"In {line}, expected single field {name}");
         }
+
+        #region LCS
+
+        [Test]
+        public void LongestCommonSubsequenceWithoutOption()
+        {
+            using var redis = ConnectionMultiplexer.Connect(TestUtils.GetConfig());
+            var db = redis.GetDatabase(0);
+            var keyA = "KeyA";
+            var valueA = "ohmytext";
+            var keyB = "KeyB";
+            var valueB = "mynewtext";
+            var expectedResult = "mytext";
+
+            db.StringSet(keyA, valueA);
+            db.StringSet(keyB, valueB);
+
+            var result = db.StringLongestCommonSubsequenceWithMatches(keyA, keyB);
+            // var result = db.StringLongestCommonSubsequence(keyA, keyB);
+
+            ClassicAssert.AreEqual(expectedResult, result);
+        }
+
+        #endregion
     }
 }

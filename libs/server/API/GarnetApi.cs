@@ -211,6 +211,14 @@ namespace Garnet.server
             => storageSession.PERSIST(key, storeType, ref context, ref objectContext);
         #endregion
 
+        #region LCS
+
+        /// <inheritdoc />
+        public GarnetStatus LCS(ArgSlice key1, ArgSlice key2, bool onlyLength, bool isIndex, int minMatchLen, bool withMatchLen, ref SpanByteAndMemory output)
+            => storageSession.LCS(key1, key2, onlyLength, isIndex, minMatchLen, withMatchLen, ref output, ref context);
+
+        #endregion
+
         #region Increment (INCR, INCRBY, DECR, DECRBY)
         /// <inheritdoc />
         public GarnetStatus Increment(ArgSlice key, ArgSlice input, ref ArgSlice output)

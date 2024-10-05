@@ -2,7 +2,9 @@
 // Licensed under the MIT license.
 
 using System;
+using System.Buffers;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using Garnet.common;
 using Tsavorite.core;
@@ -1032,6 +1034,179 @@ namespace Garnet.server
             }
 
             return status;
+        }
+
+        public unsafe GarnetStatus LCS<TContext>(ArgSlice key1, ArgSlice key2, bool onlyLength, bool isIndex, int minMatchLen, bool withMatchLen, ref SpanByteAndMemory output, ref TContext context)
+            where TContext : ITsavoriteContext<SpanByte, SpanByte, SpanByte, SpanByteAndMemory, long, MainSessionFunctions, MainStoreFunctions, MainStoreAllocator>
+        {
+            GarnetStatus status = GarnetStatus.OK;
+
+            bool createTransaction = false;
+            if (txnManager.state != TxnState.Running)
+            {
+                createTransaction = true;
+                txnManager.SaveKeyEntryToLock(key1, false, LockType.Shared);
+                txnManager.SaveKeyEntryToLock(key2, false, LockType.Shared);
+                txnManager.Run(true);
+            }
+
+            try
+            {
+                SpanByte input = default;
+                var output1 = new SpanByteAndMemory();
+                var key1Span = key1.SpanByte;
+                var status1 = GET(ref key1Span, ref input, ref output1, ref context);
+                ReadOnlySpan<byte> value1 = default;
+                System.Buffers.MemoryHandle output1MemHande = default;
+                if (status1 == GarnetStatus.OK)
+                {
+                    Debug.Assert(!output1.IsSpanByte);
+                    output1MemHande = output1.Memory.Memory.Pin();
+                }
+
+                var output2 = new SpanByteAndMemory();
+                var key2Span = key2.SpanByte;
+                var status2 = GET(ref key2Span, ref input, ref output2, ref context);
+                Debug.Assert(!output1.IsSpanByte);
+                ReadOnlySpan<byte> value2 = default;
+                System.Buffers.MemoryHandle output2MemHande = default;
+                if (status2 == GarnetStatus.OK) // TODO: (Nirmal) When Any key is not found implement is short solution to return empty string
+                {
+                    Debug.Assert(!output2.IsSpanByte);
+                    output2MemHande = output2.Memory.Memory.Pin();
+                }
+
+                byte* value1Ptr = (byte*)output1MemHande.Pointer;
+                RespReadUtils.ReadStringResponseWithLengthHeaderAsSpan(out var value1Span, ref value1Ptr, value1Ptr + output1.Length);
+                byte* value2Ptr = (byte*)output2MemHande.Pointer;
+                RespReadUtils.ReadStringResponseWithLengthHeaderAsSpan(out var value2Span, ref value2Ptr, value2Ptr + output2.Length);
+
+                var isMemory = false;
+                MemoryHandle ptrHandle = default;
+                var output_startptr = output.SpanByte.ToPointer();
+                var output_currptr = output_startptr;
+                var output_end = output_currptr + output.Length;
+
+                int value1Len = value1Span.Length;
+                int value2Len = value2Span.Length;
+                Span<int> dpPrev = stackalloc int[value2Len + 1]; // TODO: (Nirmal) Create new array when value1Len or value2Len is large
+                Span<int> dpCurr = stackalloc int[value2Len + 1];
+
+                // Build LCS table
+                for (int i = 1; i <= value1Len; i++)
+                {
+                    for (int j = 1; j <= value2Len; j++)
+                    {
+                        if (value1Span[i - 1] == value2Span[j - 1])
+                            dpCurr[j] = dpPrev[j - 1] + 1;
+                        else
+                            dpCurr[j] = Math.Max(dpPrev[j], dpCurr[j - 1]);
+                    }
+                    dpCurr.CopyTo(dpPrev);
+                }
+
+                var lcsLength = dpCurr[value2Len];
+                // If only length is needed
+                if (onlyLength)
+                {
+                    while (!RespWriteUtils.WriteInteger(lcsLength, ref output_currptr, output_end))
+                        ObjectUtils.ReallocateOutput(ref output, ref isMemory, ref output_startptr, ref ptrHandle, ref output_currptr, ref output_end);
+                    return status;
+                }
+
+                // If indices are needed
+                if (isIndex)
+                {
+                    Span<(int, int)> rangesA = stackalloc (int, int)[value1Len];
+                    Span<(int, int)> rangesB = stackalloc (int, int)[value2Len];
+                    int rangeCount = 0;
+                    int i = value1Len, j = value2Len;
+                    int endA = -1, endB = -1;
+                    int currentMatchLen = 0;
+
+                    while (i > 0 && j > 0)
+                    {
+                        if (value1Span[i - 1] == value2Span[j - 1])
+                        {
+                            if (endA == -1 && endB == -1)
+                            {
+                                endA = i - 1;
+                                endB = j - 1;
+                            }
+                            currentMatchLen++;
+                            i--;
+                            j--;
+                        }
+                        else
+                        {
+                            if (endA != -1 && endB != -1 && currentMatchLen >= minMatchLen)
+                            {
+                                rangesA[rangeCount] = (i, endA);
+                                rangesB[rangeCount] = (j, endB);
+                                rangeCount++;
+                            }
+                            endA = endB = -1;
+                            currentMatchLen = 0;
+
+                            if (dpPrev[j] > dpCurr[j - 1])
+                                i--;
+                            else
+                                j--;
+                        }
+                    }
+                    if (endA != -1 && endB != -1 && currentMatchLen >= minMatchLen)
+                    {
+                        rangesA[rangeCount] = (i, endA);
+                        rangesB[rangeCount] = (j, endB);
+                        rangeCount++;
+                    }
+
+                    string rangeA = string.Join(", ", rangesA.Slice(0, rangeCount).ToArray().Select(r => $"({r.Item1}, {r.Item2})"));
+                    string rangeB = string.Join(", ", rangesB.Slice(0, rangeCount).ToArray().Select(r => $"({r.Item1}, {r.Item2})"));
+                    // return $"Range in A: {rangeA}; Range in B: {rangeB}";
+                }
+
+                output1MemHande.Dispose();
+                output2MemHande.Dispose();
+                output1.Memory.Dispose(); // TODO: (Nirmal) Move to finally block
+                output2.Memory.Dispose();
+            }
+            finally
+            {
+                if (createTransaction)
+                {
+                    txnManager.Commit(true);
+                }
+            }
+
+            return status;
+        }
+
+        static string GetLCS(ref Span<int> dpPrev, ref Span<int> dpCurr, string a, string b, long minMatchLen)
+        {
+            int i = a.Length, j = b.Length;
+            char[] lcs = new char[dpPrev[j]];
+            int index = lcs.Length - 1;
+
+            while (i > 0 && j > 0)
+            {
+                if (a[i - 1] == b[j - 1])
+                {
+                    lcs[index--] = a[i - 1];
+                    i--;
+                    j--;
+                }
+                else if (dpPrev[j] > dpCurr[j - 1] && i > 0)
+                {
+                    i--;
+                }
+                else
+                {
+                    j--;
+                }
+            }
+
+            return new string(lcs);
         }
 
         /// <summary>

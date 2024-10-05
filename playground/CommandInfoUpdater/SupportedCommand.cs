@@ -154,6 +154,7 @@ namespace CommandInfoUpdater
                 "LATENCY|HISTOGRAM",
                 "LATENCY|RESET"
             ]),
+            new("LCS", RespCommand.LCS),
             new("LINDEX", RespCommand.LINDEX),
             new("LINSERT", RespCommand.LINSERT),
             new("LLEN", RespCommand.LLEN),

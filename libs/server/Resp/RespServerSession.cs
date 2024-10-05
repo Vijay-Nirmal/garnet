@@ -522,6 +522,7 @@ namespace Garnet.server
                 RespCommand.GETRANGE => NetworkGetRange(ref storageApi),
                 RespCommand.TTL => NetworkTTL(RespCommand.TTL, ref storageApi),
                 RespCommand.PTTL => NetworkTTL(RespCommand.PTTL, ref storageApi),
+                RespCommand.LCS => NetworkLCS(ref storageApi),
                 RespCommand.SETRANGE => NetworkSetRange(ref storageApi),
                 RespCommand.GETDEL => NetworkGETDEL(ref storageApi),
                 RespCommand.APPEND => NetworkAppend(ref storageApi),
