@@ -24,6 +24,7 @@ namespace Garnet.server
         BITFIELD_RO,
         BITPOS,
         COSCAN,
+        DUMP,
         DBSIZE,
         EXISTS,
         EXPIRETIME,
@@ -758,6 +759,12 @@ namespace Garnet.server
                             case 4:
                                 switch ((ushort)ptr[4])
                                 {
+                                    case 'D':
+                                        if (*(ulong*)(ptr + 2) == MemoryMarshal.Read<ulong>("\r\nDUMP\r\n"u8))
+                                        {
+                                            return RespCommand.DUMP;
+                                        }
+                                        break;
                                     case 'E':
                                         if (*(ulong*)(ptr + 2) == MemoryMarshal.Read<ulong>("\r\nEVAL\r\n"u8))
                                         {

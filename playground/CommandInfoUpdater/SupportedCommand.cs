@@ -104,6 +104,7 @@ namespace CommandInfoUpdater
             new("CustomObjCmd", RespCommand.CustomObjCmd),
             new("CustomTxn", RespCommand.CustomTxn),
             new("CustomProcedure", RespCommand.CustomProcedure),
+            new("DUMP", RespCommand.DUMP),
             new("DBSIZE", RespCommand.DBSIZE),
             new("DECR", RespCommand.DECR),
             new("DECRBY", RespCommand.DECRBY),

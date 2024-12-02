@@ -1691,5 +1691,34 @@ namespace Garnet.server
             v |= v >> 32;
             return v + 1;
         }
+
+        /// <summary>
+        /// DUMP - Returns a serialized version of the stored value
+        /// </summary>
+        private bool NetworkDUMP<TGarnetApi>(ref TGarnetApi storageApi)
+            where TGarnetApi : IGarnetApi
+        {
+            if (parseState.Count != 1)
+            {
+                return AbortWithWrongNumberOfArguments(nameof(RespCommand.DUMP));
+            }
+
+            var key = parseState.GetArgSliceByRef(0);
+
+            var status = storageApi.DUMP(key, out var output);
+
+            if (status == GarnetStatus.OK)
+            {
+                while (!RespWriteUtils.WriteBulkString(output, ref dcurr, dend))
+                    SendAndReset();
+            }
+            else
+            {
+                while (!RespWriteUtils.WriteNull(ref dcurr, dend))
+                    SendAndReset();
+            }
+
+            return true;
+        }
     }
 }

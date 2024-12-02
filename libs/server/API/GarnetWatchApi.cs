@@ -49,6 +49,12 @@ namespace Garnet.server
             garnetApi.WATCH(key, StoreType.Object);
             return garnetApi.GET(key, out value);
         }
+
+        public GarnetStatus DUMP(ArgSlice key, out byte[] output)
+        {
+            garnetApi.WATCH(key, StoreType.All);
+            return garnetApi.DUMP(key, out output);
+        }
         #endregion
 
         #region GETRANGE

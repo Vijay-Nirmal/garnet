@@ -1079,6 +1079,8 @@ namespace Garnet.server
         /// <param name="value"></param>
         /// <returns></returns>
         GarnetStatus GET(byte[] key, out GarnetObjectStoreOutput value);
+
+        GarnetStatus DUMP(ArgSlice key, out byte[] output);
         #endregion
 
         #region GETRANGE

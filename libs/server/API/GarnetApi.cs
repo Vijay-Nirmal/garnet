@@ -73,6 +73,9 @@ namespace Garnet.server
         /// <inheritdoc />
         public GarnetStatus GET(byte[] key, out GarnetObjectStoreOutput value)
             => storageSession.GET(key, out value, ref objectContext);
+
+        public GarnetStatus DUMP(ArgSlice key, out byte[] output)
+            => storageSession.DUMP(key, out output, ref context, ref objectContext);
         #endregion
 
         #region GETEX

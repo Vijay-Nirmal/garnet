@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Garnet.client;
 using Garnet.common;
 using Garnet.server;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using StackExchange.Redis;
@@ -3891,6 +3892,23 @@ namespace Garnet.test
             // Check that a given flag is set
             static void AssertField(string line, string[] fields, string name)
             => ClassicAssert.AreEqual(1, fields.Count(f => f.StartsWith($"{name}=")), $"In {line}, expected single field {name}");
+        }
+
+        [Test]
+        public void DumpBasicTest()
+        {
+            using var redis = ConnectionMultiplexer.Connect(TestUtils.GetConfig());
+            var db = redis.GetDatabase(0);
+
+            db.Execute("SET", ["mykey", "myValue"]);
+            var result = (string)db.Execute("DUMP", ["mykey"]);
+
+            ClassicAssert.IsNotEmpty(result);
+            /*using var lightClientRequest = TestUtils.CreateRequest();
+            var response = lightClientRequest.SendCommand("SET mykey myValue");
+            response = lightClientRequest.SendCommand("DUMP mykey");
+            var strResponse = Encoding.ASCII.GetString(response).Substring(0, 60);
+            ClassicAssert.IsNotEmpty(strResponse);*/
         }
 
         #region GETEX
