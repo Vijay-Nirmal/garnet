@@ -51,7 +51,7 @@ After extensive testing of JSON libraries and implementations, here are the key 
    - Rest of the analyze is based on Newtonsoft.Json assuming it is the selected library
 
 2. Redis Compatibility:
-   - Regex syntax differences exist between Redis and .NET libraries
+   - Regex syntax differences exist between Redis and .NET libraries, it will be costly to support Redis syntax unless we have our own implementation
    - Need custom implementations for certain Redis features like MERGE and ARRINSERT
    - Static path detection has to be implemented for Redis JSON.SET command
    - Performance might/will be slower when using JObject compared to Redis's implementation
@@ -106,7 +106,7 @@ Let's compare the features of JsonPath for the above libraries with Redis/Valkey
 | Function calling     | $.store.book[?(length(@.author) > 5)]                  | Not Supported | Not Supported   | Supported                      | Not Supported            | Not Supported | Supported         |
 | Contains (IN clause) | $.store.book[?(@.category in ['fiction','reference'])] | Not Supported | Not Supported   | Not Supported                  | Not Supported            | Supported     | Not Supported     |
 
-*****IMPORTANT:** Regex feature in redis uses different syntax and the .Net libraries. For Redis, the syntax is `$.store.book[?(@.author == ".*Waugh")]` and for .Net libraries, the syntax is `$.store.book[?(@.author =~ /.*Waugh/)]`. None of the .Net libraries support the Redis syntax and Redis does not support the .Net syntax. We might have to customize the library to support the Redis syntax or change the Redis syntax Json Path to .Net syntax.
+*****IMPORTANT:** Regex feature in redis uses different syntax and the .Net libraries. For Redis, the syntax is `$.store.book[?(@.author == ".*Waugh")]` and for .Net libraries, the syntax is `$.store.book[?(@.author =~ /.*Waugh/)]`. None of the .Net libraries support the Redis syntax and Redis does not support the .Net syntax. We might have to customize the library to support the Redis syntax or change the Redis syntax Json Path to .Net syntax or have our own implementation of Json path.
 
 In terms of feature comparison, All libraries support more features than Redis/Valkey. JsonCons.JsonPath supports the most feature. BlushingPenguin.JsonPath is a port of Newtonsoft.Json JsonPath code to System.Text.Json, so both supports the same features.
 
@@ -242,7 +242,7 @@ In terms of perforamance, Newtonsoft.Json is the best fit for Garnet. In most ca
 
 ### Conclusion for right library
 
-From the above exercise, we can conclude that Newtonsoft.Json is the best fit for Garnet. If Newtonsoft.Json is not possible, then BlushingPenguin.JsonPath is the next best fit for Garnet but it looks like is not maintained anymore. We might have to fork (or move the code to Garnet) and maintain it ourselves.
+From the above exercise, we can conclude that Newtonsoft.Json is the best fit for Garnet. If Newtonsoft.Json is not possible, then BlushingPenguin.JsonPath is the next best fit for Garnet but it looks like is not maintained anymore. We might have to fork (or move the code to Garnet) and maintain it ourselves. There are multiple advantage maintaining our own implementation like we can support Redis syntax of redis commands, we can customize the library to support Redis features, we can optimize the library for Garnet, etc.
 
 For the rest of the analyze, we will consider Newtonsoft.Json as the selected library.
 
